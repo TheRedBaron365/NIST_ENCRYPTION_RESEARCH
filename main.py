@@ -2,20 +2,18 @@ import os
 import subprocess
 from typing import List
 
-CHUNKSIZE = 1000000 # default 1,000,000
+CHUNKSIZE = 1000000  # You can adjust this as needed
 
-
-def convert_to_string_of_bits(input_path: str):
+def convert_to_string_of_bits(input_path: str) -> str:
     bits = []
-    with open(input_path, 'rb') as file: # opening as rb since it is binary data
+    with open(input_path, 'rb') as file:
         byte_data = file.read()
         for byte in byte_data:
             bits.append(f"{byte:08b}")
     return ''.join(bits)
 
-#print(convert_to_string_of_bits("tester.dat"))
 
-def chunking(chunk_size: int, bitstream: str) -> List[int]:
+def chunking(chunk_size: int, bitstream: str) -> List[str]:
     chunks = []
     num_chunks = len(bitstream) // chunk_size
     print(f"Number of chunks in input file: {num_chunks}")
@@ -26,9 +24,11 @@ def chunking(chunk_size: int, bitstream: str) -> List[int]:
 
     return chunks
 
+
 def write_to_epsilon(epsilon_path: str, chunk_to_write: str):
     with open(epsilon_path, "w") as file:
         file.write(chunk_to_write + "\n")
+
 
 def parse_results(results_path: str) -> bool:
     final_report = os.path.join(results_path, "finalAnalysisReport.txt")
@@ -36,12 +36,35 @@ def parse_results(results_path: str) -> bool:
         print("    ❌ finalAnalysisReport.txt not found.")
         return False
 
-    with open(final_report) as file:
-        content = file.read()
-        if "0/1" in content or " 0/" in content:
+    # Required statistical tests and their expected "1/1" pass result
+    required_tests = [
+        "Frequency",
+        "BlockFrequency",
+        "CumulativeSums",
+        "Runs",
+        "LongestRun",
+        "Rank",
+        "FFT",
+        "Universal",
+        "ApproximateEntropy",
+        "Serial",
+        "LinearComplexity"
+    ]
+
+    with open(final_report, "r") as file:
+        lines = file.readlines()
+
+    for test in required_tests:
+        found = False
+        for line in lines:
+            if test in line and "1/1" in line:
+                found = True
+                break
+        if not found:
+            print(f"    ❌ Test '{test}' did not pass with 1/1.")
             return False
+
     return True
-            
 
 
 def run_STS(path_to_nist: str, epsilon_bit_length: int) -> bool:
@@ -49,13 +72,12 @@ def run_STS(path_to_nist: str, epsilon_bit_length: int) -> bool:
 
     assess_inputs = "\n".join([
         "0",  # Generator: User Input File
+        "data/BBS_fail.dat",  # Must match what assess expects
         "1",  # Use all statistical tests
         "0",  # Keep default parameters
         "1",  # Number of bitstreams
-        "0"   # Input mode: ASCII (0's and 1's)
+        "1"   # Input mode: ASCII
     ]) + "\n"
-
-    assess_path = os.path.join(path_to_nist, "assess")
 
     result = subprocess.run(["./assess", str(epsilon_bit_length)],
                cwd=path_to_nist,
@@ -72,8 +94,6 @@ def run_STS(path_to_nist: str, epsilon_bit_length: int) -> bool:
 
     return parse_results(results_path)
 
-
-    
 
 def filter_chunks(chunk_array: List[str], epsilon_path: str, nist_path: str):
     passing_chunks = []
@@ -98,7 +118,7 @@ def final_sanitization(input_path: str, epsilon_path: str, nist_path: str, chunk
     round_number = 1
 
     while True:
-        print(f"\n===Round #{round_number}===")
+        print(f"\n=== Round #{round_number} ===")
 
         chunks = chunking(chunk_size, bitstream)
         passing_chunks = filter_chunks(chunks, epsilon_path, nist_path)
@@ -114,21 +134,21 @@ def final_sanitization(input_path: str, epsilon_path: str, nist_path: str, chunk
 
     with open(output_path, "w") as file:
         file.write(bitstream)
-    print(f"\nSanitized bitstream after processing, written to {output_path}.")
 
-
-
+    print(f"\nSanitized bitstream written to: {output_path}")
 
 
 ######################## 
 # Testing Area
 ########################
+
 testing_demo_path = "tester.dat"
-real_testing_path = "sts-2.1.2/data/BBS.dat"
+real_testing_path = r"C:\Users\braya\Downloads\sts-2_1_2\sts-2.1.2\sts-2.1.2\data\BBS_fail.dat"
+
 final_sanitization(
     input_path=real_testing_path,
-    epsilon_path="sts-2.1.2/data/epsilon",
-    nist_path="sts-2.1.2",
+    epsilon_path=r"C:\Users\braya\Downloads\sts-2_1_2\sts-2.1.2\sts-2.1.2\data\epsilon",  
+    nist_path=r"C:\Users\braya\Downloads\sts-2_1_2\sts-2.1.2\sts-2.1.2",
     chunk_size=CHUNKSIZE,
-    output_path="results/cleaned_output.bit"
+    output_path=r"C:\Users\braya\Downloads\sts-2_1_2\sts-2.1.2\sts-2.1.2\results\cleaned_output.bit"
 )
