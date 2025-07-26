@@ -1,5 +1,6 @@
-import os
+import os 
 import subprocess
+import re
 from typing import List
 
 CHUNKSIZE = 1000000  # Adjust as needed
@@ -27,31 +28,53 @@ def write_to_epsilon(chunk_to_write: str):
         file.write(chunk_to_write + "\n")
 
 def parse_results(results_path: str) -> bool:
-    final_report = os.path.join(results_path, "finalAnalysisReport.txt")
-    if not os.path.isfile(final_report):
-        print("    ❌ finalAnalysisReport.txt not found.")
-        return False
-
     required_tests = [
         "Frequency", "BlockFrequency", "CumulativeSums", "Runs", "LongestRun",
-        "Rank", "FFT", "Universal", "ApproximateEntropy", "Serial", "LinearComplexity"
+        "Rank", "FFT", "Universal", "ApproximateEntropy", "Serial",
+        "LinearComplexity", "RandomExcursions", "RandomExcursionsVariant"
     ]
 
-    with open(final_report, "r") as file:
-        lines = file.readlines()
+    all_passed = True
 
-    #check to see if tests pass according to finalAnalysisReport
     for test in required_tests:
-        found = False
-        for line in lines:
-            if test in line and "1/1" in line:
-                found = True
-                break
-        if not found:
-            print(f"    ❌ Test '{test}' did not pass with 1/1.")
-            return False
+        test_dir = os.path.join(results_path, test)
+        results_file = os.path.join(test_dir, "results.txt")
 
-    return True
+        if not os.path.isfile(results_file):
+            print(f"    ❌ Missing results.txt for '{test}'")
+            all_passed = False
+            continue
+
+        with open(results_file, "r") as file:
+            lines = file.readlines()
+
+        p_values = []
+        for line in lines:
+            line = line.strip()
+            if "p-value" in line.lower():
+                match = re.search(r"([0-9]*\.?[0-9]+)", line)
+                if match:
+                    p_values.append(float(match.group(1)))
+            else:
+                try:
+                    val = float(line)
+                    p_values.append(val)
+                except ValueError:
+                    continue
+
+        if not p_values:
+            print(f"    ❌ No P-values found in '{test}'")
+            all_passed = False
+            continue
+
+        failed_values = [p for p in p_values if p < 0.01]
+        if failed_values:
+            print(f"    ❌ Test '{test}' FAILED (P-values < 0.01): {failed_values}")
+            all_passed = False
+        else:
+            print(f"    ✅ Test '{test}' PASSED")
+
+    return all_passed
 
 def run_STS(path_to_nist: str, epsilon_bit_length: int) -> bool:
     print(f"    ▶️ Running assess on {epsilon_bit_length} bits...")
@@ -65,7 +88,6 @@ def run_STS(path_to_nist: str, epsilon_bit_length: int) -> bool:
         "0"              # ASCII input mode
     ]) + "\n"
 
-    #running nist through terminal
     result = subprocess.run(["./assess", str(epsilon_bit_length)],
                cwd=path_to_nist,
                input=assess_inputs.encode(),
@@ -95,7 +117,6 @@ def filter_chunks(chunk_array: List[str], nist_path: str) -> List[str]:
             print("❌ Chunk FAILED")
     return passing_chunks
 
-#final resulting output
 def final_sanitization(input_path: str, nist_path: str, chunk_size: int, output_path: str):
     bitstream = convert_to_string_of_bits(input_path)
     round_number = 1
