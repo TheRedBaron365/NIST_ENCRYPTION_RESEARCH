@@ -26,8 +26,12 @@ def chunking(chunk_size: int, bitstream: str) -> List[str]:
         chunks.append(chunk_str)
     return chunks
 
-def write_to_epsilon(chunk_to_write: str):
-    epsilon_path = os.path.join("data", "epsilon")
+def write_to_epsilon(chunk_to_write: str, nist_path: str):
+    # Write epsilon into the STS data folder so `assess` (run with cwd=nist_path)
+    # can read `data/epsilon` as the input file.
+    data_dir = os.path.join(nist_path, "data")
+    os.makedirs(data_dir, exist_ok=True)
+    epsilon_path = os.path.join(data_dir, "epsilon")
     with open(epsilon_path, "w") as file:
         file.write(chunk_to_write + "\n")
 
@@ -128,7 +132,7 @@ def precheck_filter(input_path: str, nist_path: str, small_chunk_size: int) -> s
 
     for i, chunk in enumerate(chunks):
         print(f"Precheck: Testing chunk {i + 1}/{len(chunks)}")
-        write_to_epsilon(chunk)
+        write_to_epsilon(chunk, nist_path)
         passed = run_STS(nist_path, len(chunk), SMALL_TESTS)
         if passed:
             passing_bits.append(chunk)
@@ -142,7 +146,7 @@ def filter_chunks(chunk_array: List[str], nist_path: str) -> List[str]:
     passing_chunks = []
     for i, chunk in enumerate(chunk_array):
         print(f"Full Test: Testing chunk {i + 1}/{len(chunk_array)}")
-        write_to_epsilon(chunk)
+        write_to_epsilon(chunk, nist_path)
         passed = run_STS(nist_path, len(chunk), [
             "Frequency", "BlockFrequency", "CumulativeSums", "Runs", "LongestRun",
             "Rank", "FFT", "Universal", "ApproximateEntropy", "Serial",
@@ -190,11 +194,30 @@ def final_sanitization(input_path: str, nist_path: str, chunk_size: int, output_
 # Execution Starts Here
 ########################
 
-real_testing_path = r"C:\Users\braya\Downloads\sts-2.1.2\sts-2.1.2\sts-2.1.2\data\BBS.dat"
+# Simple relative resolution: prefer the STS folder placed next to this script.
+# This keeps your original code/logic intact but avoids hardcoded Windows paths.
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Candidate 1: a common folder name used in this workspace
+candidate = os.path.join(script_dir, "sts-2.1.2 2", "sts-2.1.2")
+if not os.path.isdir(candidate):
+    # Fallback to a plain `sts-2.1.2` at the same level as this script
+    candidate = os.path.join(script_dir, "sts-2.1.2")
+
+if not os.path.isdir(candidate):
+    print("❌ Could not find an STS folder next to `main.py`. Please place `sts-2.1.2` (or `sts-2.1.2 2/sts-2.1.2`) next to `main.py`.")
+    raise SystemExit(1)
+
+nist_root = candidate
+real_testing_path = os.path.join(nist_root, "data", "BBS.dat")
+output_path = os.path.join(nist_root, "results", "cleaned_output.bit")
+
+print(f"Using STS root: {nist_root}")
+print(f"Using input file: {real_testing_path}")
+print(f"Using output file: {output_path}")
 
 final_sanitization(
     input_path=real_testing_path,
-    nist_path=r"C:\Users\braya\Downloads\sts-2.1.2\sts-2.1.2\sts-2.1.2",
+    nist_path=nist_root,
     chunk_size=CHUNKSIZE,
-    output_path=r"C:\Users\braya\Downloads\sts-2.1.2\sts-2.1.2\sts-2.1.2\results\cleaned_output.bit"
+    output_path=output_path
 )
