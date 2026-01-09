@@ -191,33 +191,34 @@ def final_sanitization(input_path: str, nist_path: str, chunk_size: int, output_
         print("\n⚠️ No passing chunks to write. Output file was not created.")
 
 ######################## 
-# Execution Starts Here
+# Execution Starts Here (CLI mode)
 ########################
 
-# Simple relative resolution: prefer the STS folder placed next to this script.
-# This keeps your original code/logic intact but avoids hardcoded Windows paths.
-script_dir = os.path.dirname(os.path.abspath(__file__))
-# Candidate 1: a common folder name used in this workspace
-candidate = os.path.join(script_dir, "sts-2.1.2 2", "sts-2.1.2")
-if not os.path.isdir(candidate):
-    # Fallback to a plain `sts-2.1.2` at the same level as this script
-    candidate = os.path.join(script_dir, "sts-2.1.2")
+if __name__ == "__main__":
+    # Simple relative resolution: prefer the STS folder placed next to this script.
+    # This keeps your original code/logic intact but avoids hardcoded Windows paths.
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Candidate 1: a common folder name used in this workspace
+    candidate = os.path.join(script_dir, "sts-2.1.2 2", "sts-2.1.2")
+    if not os.path.isdir(candidate):
+        # Fallback to a plain `sts-2.1.2` at the same level as this script
+        candidate = os.path.join(script_dir, "sts-2.1.2")
 
-if not os.path.isdir(candidate):
-    print("❌ Could not find an STS folder next to `main.py`. Please place `sts-2.1.2` (or `sts-2.1.2 2/sts-2.1.2`) next to `main.py`.")
-    raise SystemExit(1)
+    if not os.path.isdir(candidate):
+        print("❌ Could not find an STS folder next to `main.py`. Please place `sts-2.1.2` (or `sts-2.1.2 2/sts-2.1.2`) next to `main.py`.")
+        raise SystemExit(1)
 
-nist_root = candidate
-real_testing_path = os.path.join(nist_root, "data", "BBS.dat")
-output_path = os.path.join(nist_root, "results", "cleaned_output.bit")
+    nist_root = candidate
+    real_testing_path = os.path.join(nist_root, "data", "BBS.dat")
+    output_path = os.path.join(nist_root, "results", "cleaned_output.bit")
 
-print(f"Using STS root: {nist_root}")
-print(f"Using input file: {real_testing_path}")
-print(f"Using output file: {output_path}")
+    print(f"Using STS root: {nist_root}")
+    print(f"Using input file: {real_testing_path}")
+    print(f"Using output file: {output_path}")
 
-final_sanitization(
-    input_path=real_testing_path,
-    nist_path=nist_root,
-    chunk_size=CHUNKSIZE,
-    output_path=output_path
-)
+    final_sanitization(
+        input_path=real_testing_path,
+        nist_path=nist_root,
+        chunk_size=CHUNKSIZE,
+        output_path=output_path
+    )

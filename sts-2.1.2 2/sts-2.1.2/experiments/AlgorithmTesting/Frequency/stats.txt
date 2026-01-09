@@ -2,8 +2,8 @@
 		---------------------------------------------
 		COMPUTATIONAL INFORMATION:
 		---------------------------------------------
-		(a) The nth partial sum = 194
-		(b) S_n/n               = 0.019400
+		(a) The nth partial sum = 82
+		(b) S_n/n               = 0.008200
 		---------------------------------------------
-SUCCESS		p_value = 0.052380
+SUCCESS		p_value = 0.412216
 
